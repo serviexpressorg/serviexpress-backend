@@ -2,17 +2,75 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
-use Illuminate\Http\Request;
+use App\Models\SpecialistVerification;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Symfony\Component\HttpFoundation\Response;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
     public function register(RegisterRequest $request)
     {
 
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+            'role' => $request->role === 'specialist'
+                ? 'pending_specialist'
+                : 'client',
+        ]);
+
+        if ($request->role === 'especialist') {
+            SpecialistVerification::create([
+                'user_id' => $user->id,
+                'criminal_record_file_url' => $request->criminal_record_file_url,
+                'status' => 'pending',
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Usuario registrado correctamente',
+            'data' => [
+                'user' => $user,
+            ],
         ], 201);
+    }
+
+    public function login(LoginRequest $request)
+    {
+        $credentials = $request->only('email', 'password');
+
+        try {
+            if (! $token = JWTAuth::attempt($credentials)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales incorrectas',
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el token',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $user = Auth::user();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login exitoso',
+            'data' => [
+                'access_token' => $token,
+                'user' => $user,
+            ],
+        ]);
     }
 }
