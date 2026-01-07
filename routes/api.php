@@ -10,4 +10,5 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware([JwtAuthMiddleware::class])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/me/update', [AuthController::class, 'updateProfile']);
 });
