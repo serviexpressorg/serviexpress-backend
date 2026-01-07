@@ -73,4 +73,38 @@ class AuthController extends Controller
             ],
         ]);
     }
+
+    public function me()
+    {
+        $user = Auth::user();
+
+        $data = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+
+        if ($user->role === 'specialist' || $user->role === 'pending_specialist') {
+            $verification = $user->specialistVerification; // relación
+            $data['specialist_verification'] = $verification ? [
+                'status' => $verification->status,
+                'reviewed_at' => $verification->reviewed_at,
+                'rejection_reason' => $verification->rejection_reason,
+            ] : [
+                'status' => 'pending',
+                'reviewed_at' => null,
+                'rejection_reason' => null,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Perfil obtenido correctamente',
+            'data' => $data,
+        ]);
+    }
 }
